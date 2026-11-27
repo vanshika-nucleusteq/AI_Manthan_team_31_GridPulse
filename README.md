@@ -40,7 +40,7 @@ until every service is healthy. Expected `docker compose ps`:
 | airflow-init | exited (0) | migrates the Airflow DB, creates the admin user |
 | airflow-webserver | healthy | http://localhost:8080 (user and password from `.env`) |
 | airflow-scheduler | healthy | |
-| streamlit | healthy | http://localhost:8501 (placeholder page with meter counts) |
+| streamlit | healthy | http://localhost:8501 (GridPulse dashboard; deep link e.g. `?view=anomalies&day=2026-08-11`) |
 
 If `make.ps1 up` ran before `generate`, load the meter master afterwards with `make.ps1 seed` (safe to repeat).
 

@@ -56,6 +56,47 @@ Billed kWh (Billing page) = register at month end − register at month start, r
 4. **Completeness is a heatmap with the value printed in each cell, plus a "likely cause" column on flagged meter-days.** Reason: the page must tell a field problem (one meter) from a pipeline problem (a whole feeder or zone, late files); the heatmap shows the pattern across zones and days, and the cause column says what to do next.
 5. **Explanatory empty states instead of blank charts, and filters that live in the sidebar on every page.** Reason: "no anomalies" is a valid, useful answer and must not look like a broken chart; shared filters mean a user who scopes to a zone stays in that scope when moving between pages, which matches Streamlit's sidebar and session state.
 
+## Streamlit dashboard (P11)
+
+Built from the team's GridPulse design template (Next.js + Tailwind + shadcn reference, rebuilt in Streamlit 1.45
+and Plotly): dark theme by default with a light/dark toggle, lime primary, Space Grotesk + JetBrains Mono,
+16 px rounded panels, sidebar with five views, header with breadcrumb, day picker, data-freshness pill and
+theme toggle. Kept to what the card's must-haves need: operator internals (DAG stepper, backfill form,
+storage-layout table) were removed after review to keep the dashboard focused. The layout and components follow the template; **every number comes from the
+GridPulse backend**, not from the template's mock data.
+
+Run: `make.ps1 up` then http://localhost:8501 (container), or locally
+`streamlit run app/app.py` with `GRIDPULSE_DB_URL` set. Deep links: `?view=anomalies&theme=light&day=2026-08-11`.
+Code: `app/app.py` (shell), `app/gridpulse_ui/` (`theme.py`, `data.py`, `components.py`, `views.py`).
+
+| View | Panels (top to bottom) |
+| --- | --- |
+| Overview | Hero, KPI strip, Feeder consumption + Completeness by zone, Anomaly feed (latest 5) |
+| Consumption | Feeder consumption, Network daily consumption, Billing-ready consumption per meter |
+| Anomalies | Anomaly summary (3 checks), Anomaly feed (all since go-live), Load heatmap |
+| Data quality | Completeness by zone + Data quality rules + Schema evolution, Load heatmap |
+| Pipeline health (MH7) | KPI strip (readings, completeness, duplicate rate, quarantined rows), Pipeline run time + Ingest lag, Quarantined rows by rule |
+
+Where each panel's data comes from:
+
+| Panel | Source |
+| --- | --- |
+| Hero, daily consumption, KPI readings and completeness | `consumption_daily_zone` |
+| Feeder consumption (zone pills) | `consumption_hourly_zone`, selected IST day vs previous day |
+| Completeness by zone | `consumption_daily_zone` (flag unless completeness > 90%) |
+| Anomaly feed and summary | `anomalies` (spike, tamper, outage; thresholds shown from `config/anomalies.yaml`) |
+| Load heatmap | `consumption_hourly_feeder`; a cell is a hatched gap when < 50% of expected readings arrived |
+| Data quality rules, quarantined rows KPI | `data_quality_daily`, `consumption_daily_meter` |
+| Billing table | `billing_monthly` (REVIEW first, then largest READY) |
+| Pipeline run time, duplicate rate KPI, data-freshness pill | `pipeline_runs` (written by every CLI step) |
+| Schema evolution, ingest lag | bronze Parquet for the selected arrival day (read-only lake mount) |
+
+Deviations from the template, on purpose: zones Z1 to Z6 and feeders F01 to F20 (our data), a day picker
+instead of a fixed date (the demo data is 1 to 21 Aug 2026), "Readings received" and "Quarantined rows" KPIs
+instead of mock "events" and "ingest lag p95" (ingest lag is its own panel), anomaly status is "open" (no
+case workflow yet), no notification bell (it had no function), and no DAG, backfill or storage-layout panels
+(backfill and rollback stay command-line operations: `make.ps1 backfill`, `make.ps1 rollback`).
+
 ## Streamlit screenshots
 
-Placeholder: add screenshots of the real Streamlit pages here after P11, one per page, taken on the same day as the answer-key check.
+Headless Edge, 1440 px wide: [overview (dark)](ui/screens/streamlit-overview-dark.png) · [overview (light)](ui/screens/streamlit-overview-light.png) · [consumption](ui/screens/streamlit-consumption-dark.png) · [anomalies](ui/screens/streamlit-anomalies-dark.png) · [data quality](ui/screens/streamlit-quality-dark.png) · [pipeline health](ui/screens/streamlit-pipeline-dark.png).
