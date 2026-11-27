@@ -1,0 +1,4 @@
+# config/quality.yaml (docs/gridpulse-plan.md section 5)
+completeness_flag_pct: 90
+lookback_days: 3
+timestamp_tolerance_seconds: 60

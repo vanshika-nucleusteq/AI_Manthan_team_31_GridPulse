@@ -1,0 +1,4 @@
+# config/anomalies.yaml (docs/gridpulse-plan.md section 5)
+spike:   {z_threshold: 4.0, baseline_days: 28, min_samples: 14}
+tamper:  {zero_hours: 48, min_completeness_pct: 90, feeder_normal_share: 0.8}
+outage:  {feeder_missing_share: 0.5, min_consecutive_intervals: 2}

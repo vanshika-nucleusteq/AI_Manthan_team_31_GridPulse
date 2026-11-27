@@ -1,0 +1,25 @@
+# Pipeline settings. Values come from docs/gridpulse-plan.md sections 1-5 and P8.
+timezone_storage: UTC
+timezone_local: Asia/Kolkata
+interval_minutes: 15
+intervals_per_day: 96
+paths:
+  landing: data/landing
+  lake: data/lake
+  answer_key: data/answer_key.json
+retention:
+  raw_days: 30
+  bronze_days: 30
+  quarantine_days: 30
+  silver_months: 13
+  hourly_months: 13
+  archive_days: 7
+compaction:
+  target_file_mb_min: 64
+  target_file_mb_max: 128
+  sort_by: [meter_id, interval_start]
+orchestration:
+  dag_id: gridpulse_daily
+  retries: 2
+  retry_delay_minutes: 1
+  max_active_runs: 1
