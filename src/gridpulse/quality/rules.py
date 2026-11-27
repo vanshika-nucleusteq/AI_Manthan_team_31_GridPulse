@@ -40,12 +40,19 @@ SELECT
         WHEN b.energy_unit IS NOT NULL THEN b.unit_source
         WHEN m.reporting_unit IS NOT NULL THEN 'master'
     END AS unit_source_resolved,
-    CASE WHEN b.ts IS NOT NULL THEN (b.ts AT TIME ZONE '{tz}')::DATE ELSE b.arrival_date END
-        AS reading_date,
+    -- IST day of the snapped interval, not the raw ts: 18:29:40Z snaps to 18:30Z (next IST day).
+    CASE
+        WHEN b.ts IS NOT NULL
+            THEN (to_timestamp(round(epoch(b.ts) / {step}) * {step}) AT TIME ZONE '{tz}')::DATE
+        ELSE b.arrival_date
+    END AS reading_date,
     CAST(epoch(b.ts) AS BIGINT) % {step} AS grid_rem,
     to_timestamp(round(epoch(b.ts) / {step}) * {step}) AS interval_start
 FROM bronze AS b
 LEFT JOIN master AS m USING (meter_id);
+
+-- Only readings dated context_start..ds matter; later arrivals for other days are skipped here.
+DELETE FROM enriched WHERE reading_date NOT BETWEEN DATE '{context_start}' AND DATE '{ds}';
 
 CREATE OR REPLACE TEMP TABLE pre AS
 SELECT
@@ -168,6 +175,8 @@ def check_window(ds: date, lake: Lake, settings: dict[str, Any]) -> tuple[Any, d
             tolerance=int(q["timestamp_tolerance_seconds"]),
             statuses=quote(q["allowed_status"]),
             units=quote(q["allowed_units"]),
+            context_start=context_start,
+            ds=ds,
         )
     )
     return con, first

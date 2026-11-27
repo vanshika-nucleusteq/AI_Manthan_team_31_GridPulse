@@ -48,6 +48,10 @@ def run_step(step: str, ds: date) -> dict[str, Any] | None:
         from gridpulse.quality.rules import quality
 
         return quality(ds)
+    if step == "normalise":
+        from gridpulse.normalise.readings import normalise
+
+        return normalise(ds)
     return None
 
 
