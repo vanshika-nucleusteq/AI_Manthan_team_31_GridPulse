@@ -3,10 +3,12 @@ timezone_storage: UTC
 timezone_local: Asia/Kolkata
 interval_minutes: 15
 intervals_per_day: 96
-paths:
-  landing: data/landing
-  lake: data/lake
-  answer_key: data/answer_key.json
+paths:                     # under data_dir; GRIDPULSE_DATA_DIR overrides data_dir
+  data_dir: data
+  landing: landing
+  lake: lake
+  answer_key: answer_key.json
+  meter_master: meter_master.csv
 retention:
   raw_days: 30
   bronze_days: 30

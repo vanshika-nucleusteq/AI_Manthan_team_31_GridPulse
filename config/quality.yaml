@@ -2,3 +2,16 @@
 completeness_flag_pct: 90
 lookback_days: 3
 timestamp_tolerance_seconds: 60
+context_days: 1                  # extra day of bronze read only to find each meter's previous reading
+allowed_units: [Wh, kWh]
+allowed_status: [OK, ROLLOVER, ERROR]
+# One rule per quarantined row: the first failing rule in this order wins.
+rules_in_order:
+  - CORRUPT_FILE                 # gzip file cannot be read
+  - MALFORMED_RECORD             # bad JSON, missing field, non-numeric energy, unknown status, no arrival stamp
+  - BAD_TIMESTAMP                # unparseable, no time zone, off the grid beyond tolerance, after file arrival
+  - UNKNOWN_METER                # meter_id not in meter_master
+  - BAD_UNIT                     # unit not in allowed_units and no master fallback
+  - METER_ERROR                  # status ERROR reported by the meter
+  - NEGATIVE_READING             # energy < 0
+  - REGISTER_DECREASED           # lower than the previous interval and status is not ROLLOVER
