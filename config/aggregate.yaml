@@ -1,0 +1,4 @@
+# Gold aggregates and billing (docs/plan-model-logic.md section 5).
+billing_tolerance_kwh: 0.001     # register-difference vs sum-of-intervals mismatch above this sets REVIEW
+billing_start_lookup_days: 7     # how far before a month to look for the last register reading
+archive_dir: _archive            # replaced gold partitions are moved here, per run_id (retention: pipeline.yaml)
