@@ -19,7 +19,7 @@ The card names Superset for must-have 7; the team uses Streamlit (see `docs/lld.
 - Online copy (private claude.ai artifact; share it from its Share menu): https://claude.ai/artifact/UyrPMinNjsyfJy1pXyAGE1
 - All numbers are **fake** and seeded so screenshots are repeatable. They are shaped like the generator output (5,000 meters, 20 feeders, 6 zones, F07 outage, 3 tamper, 10 spikes) but are not read from `data/`.
 - Story told by the fake data: on 14 Aug, Z2 drops to 88.9% completeness (late gateway files on F06/F07, a pipeline problem) and F07 has a 10:00–12:00 IST outage (a field problem), so the alert states are visible.
-- Screenshots (headless Edge, 1400 × 1150): [overview](ui/screens/overview.png) · [completeness](ui/screens/completeness.png) · [anomalies](ui/screens/anomalies.png) · [billing](ui/screens/billing.png) · [pipeline health](ui/screens/pipeline.png).
+- The wireframe opens in any browser; screenshots of the built dashboard are under "Streamlit screenshots" below.
 - Empty state: pick **Zone = Z3** (or any zone but Z2) on the Anomalies page; the outage timeline shows "No outages on 14 Aug in this scope" with the reason.
 
 ## Pages
