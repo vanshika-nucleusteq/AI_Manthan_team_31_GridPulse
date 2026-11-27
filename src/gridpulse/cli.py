@@ -52,6 +52,14 @@ def run_step(step: str, ds: date) -> dict[str, Any] | None:
         from gridpulse.normalise.readings import normalise
 
         return normalise(ds)
+    if step == "aggregate":
+        from gridpulse.aggregate.run import aggregate
+
+        return aggregate(ds)
+    if step == "publish":
+        from gridpulse.publish.postgres import publish
+
+        return publish(ds)
     return None
 
 
