@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import time
 from dataclasses import dataclass
@@ -38,6 +39,24 @@ class Lake:
 
     def silver(self, table: str, day: date) -> Path:
         return self.root / "silver" / table / f"date={day.isoformat()}"
+
+    def gold(self, table: str, part: str) -> Path:
+        return self.root / "gold" / table / part
+
+    def archive(self, table: str, run_id: str, part: str) -> Path:
+        safe = re.sub(r"[^A-Za-z0-9_.-]", "_", run_id)
+        return self.root / "_archive" / table / f"run_id={safe}" / part
+
+    def files(self, layer: str, table: str, first: date, last: date) -> list[str]:
+        """Parquet files under <layer>/<table>/date=D/ for first <= D <= last (finished folders)."""
+        root = self.root / layer / table
+        found: list[str] = []
+        for folder in sorted(root.glob("date=*")) if root.exists() else []:
+            if folder.name.endswith((".tmp", ".old")):
+                continue
+            if first <= date.fromisoformat(folder.name.removeprefix("date=")) <= last:
+                found += [f.as_posix() for f in sorted(folder.rglob("*.parquet"))]
+        return found
 
     def quarantine(self, day: date) -> Path:
         return self.root / "quarantine" / f"date={day.isoformat()}"
@@ -77,8 +96,10 @@ def _rename(src: Path, dst: Path, attempts: int = 6) -> None:
             time.sleep(0.25 * 2**attempt)
 
 
-def _swap(tmp: Path, target: Path) -> None:
-    """Put tmp in place of target. If that fails, the previous version is restored first."""
+def _swap(tmp: Path, target: Path, archive: Path | None = None) -> None:
+    """Put tmp in place of target; if that fails, the previous version is restored first. With
+    archive, the replaced version is kept there for rollback; the first version archived under a
+    run_id wins, so a rerun keeps the pre-run state."""
     old = target.with_name(target.name + ".old")
     if target.exists():
         _rename(target, old)
@@ -89,22 +110,33 @@ def _swap(tmp: Path, target: Path) -> None:
             _rename(old, target)
         raise
     if old.exists():
-        shutil.rmtree(old)
+        if archive is not None and not archive.exists():
+            archive.parent.mkdir(parents=True, exist_ok=True)
+            _rename(old, archive)
+        else:
+            shutil.rmtree(old)
 
 
-def overwrite_partition(con: Any, select_sql: str, target: Path, order_by: str) -> int:
+def overwrite_partition(
+    con: Any, select_sql: str, target: Path, order_by: str, archive: Path | None = None
+) -> int:
     """Write select_sql to target/part-0.parquet via a temp folder, then swap it in."""
     tmp = _fresh_tmp(target)
     rows = con.execute(
         f"COPY ({select_sql} ORDER BY {order_by}) TO {sql_path(tmp / PART_FILE)} "
         "(FORMAT parquet, COMPRESSION zstd)"
     ).fetchone()[0]
-    _swap(tmp, target)
+    _swap(tmp, target, archive)
     return int(rows)
 
 
 def overwrite_partitioned(
-    con: Any, select_sql: str, target: Path, order_by: str, partition_by: str
+    con: Any,
+    select_sql: str,
+    target: Path,
+    order_by: str,
+    partition_by: str,
+    archive: Path | None = None,
 ) -> int:
     """Like overwrite_partition, with Hive sub-folders (e.g. zone=Z1/) swapped in as one unit, so
     a sub-partition that comes out empty cannot leave stale files behind."""
@@ -114,7 +146,7 @@ def overwrite_partitioned(
         f"COMPRESSION zstd, PARTITION_BY ({partition_by}), FILENAME_PATTERN 'part-{{i}}', "
         "OVERWRITE_OR_IGNORE true)"
     ).fetchone()[0]
-    _swap(tmp, target)
+    _swap(tmp, target, archive)
     return int(rows)
 
 
