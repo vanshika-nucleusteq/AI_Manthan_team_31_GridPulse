@@ -15,3 +15,4 @@ rules_in_order:
   - METER_ERROR                  # status ERROR reported by the meter
   - NEGATIVE_READING             # energy < 0
   - REGISTER_DECREASED           # lower than the previous interval and status is not ROLLOVER
+max_arrival_lag_days: 4          # a run for ds reads bronze arrivals up to ds + this; later files need a wider backfill
