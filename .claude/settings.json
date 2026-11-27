@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git push origin *)",
+      "Bash(docker compose *)",
+      "Bash(docker ps*)",
+      "Bash(docker logs *)",
+      "Bash(.venv/Scripts/python *)",
+      "Bash(.venv/Scripts/python -m pytest*)",
+      "Bash(.venv/Scripts/python -m ruff *)",
+      "Bash(.venv/Scripts/python -m black *)",
+      "Bash(.venv/Scripts/pytest*)",
+      "Bash(.venv/Scripts/ruff *)",
+      "Bash(.venv/Scripts/black *)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File scripts/make.ps1*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File scripts/make.ps1*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push *--force*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf *)",
+      "Bash(docker system prune*)",
+      "Bash(docker volume rm *)"
+    ]
+  }
+}

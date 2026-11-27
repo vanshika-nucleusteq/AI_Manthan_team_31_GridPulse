@@ -41,6 +41,14 @@ Design source of truth: `docs/gridpulse-plan.md`, split into `docs/plan-*.md` fo
 - Thresholds and rule settings live in config (YAML or a table), never hard-coded.
 - If unsure about a requirement, ask; do not invent scope.
 
+## Autonomy rules
+- For each step, present the plan once and wait for my "go". After that, do not ask again until the step is done.
+- Then implement, run `scripts/make.ps1 check`, and fix failures yourself (up to 3 attempts).
+- Commit in small verified commits with feat/fix/test/docs/chore prefixes, merge to main, push to origin main, and add a /claude-journal entry.
+- Stop and ask only if: checks still fail after 3 attempts, the card or plan is ambiguous, a change would delete data or history, or the step needs something outside its scope.
+- End every step with a 5-line summary: what was built, the verification evidence, answer-key results (if any), commits, and anything for the sprint sheet.
+- Run a prompt-pack step with `/step P<n>` (prompts in `docs/prompts/`). Shared permissions live in `.claude/settings.json`.
+
 ## Unit rules
 - All energy is stored in kWh as DECIMAL(18,6). Nothing after bronze stores Wh.
 - Conversion: kWh = Wh / 1000, exact decimal division with no float rounding before storage.
@@ -131,4 +139,4 @@ Windows (no make): `powershell -ExecutionPolicy Bypass -File scripts/make.ps1 <t
 Python: Black + Ruff, snake_case, type hints. SQL: snake_case, explicit column lists. No commented-out code.
 
 ## Skills in this repo
-/kickoff-card · /adr · /claude-journal · /data-tests · /stack-deploy · /sre-drill
+/kickoff-card · /adr · /claude-journal · /data-tests · /stack-deploy · /sre-drill · /step
