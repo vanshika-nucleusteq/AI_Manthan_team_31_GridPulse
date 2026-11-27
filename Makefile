@@ -18,8 +18,9 @@ test:
 
 check: lint test
 
+# make generate ARGS="--days 14 --overwrite"
 generate:
-	@echo "TODO: built in P1"
+	$(BIN)/python -m gridpulse.generator $(ARGS)
 
 up down reset logs:
 	@echo "TODO: built in P3"

@@ -30,7 +30,7 @@ switch ($Target) {
     "lint" { Invoke-Lint }
     "test" { Invoke-Test }
     "check" { Invoke-Lint; Invoke-Test }
-    "generate" { Write-Output "TODO: built in P1" }
+    "generate" { Invoke-Step $Py (@("-m", "gridpulse.generator") + @($Rest | Where-Object { $_ })) }
     { $_ -in @("up", "down", "reset", "logs") } { Write-Output "TODO: built in P3" }
     { $_ -in @("run-day", "backfill", "rollback") } { Write-Output "TODO: built in P8" }
     default {
