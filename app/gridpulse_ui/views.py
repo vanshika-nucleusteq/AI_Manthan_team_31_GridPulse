@@ -30,11 +30,19 @@ def rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def chart(fig: go.Figure, theme: str, height: int, **layout: Any) -> None:
-    base = plotly_layout(theme, height)
-    for axis in ("xaxis", "yaxis"):
-        base[axis] = {**base[axis], **layout.pop(axis, {})}
-    fig.update_layout(**base, **layout)
+def chart_layout(theme: str, height: int, **overrides: Any) -> dict[str, Any]:
+    """Template layout with per-chart overrides; axis dicts merge, other keys replace."""
+    layout = plotly_layout(theme, height)
+    for key, value in overrides.items():
+        if key in ("xaxis", "yaxis"):
+            layout[key] = {**layout[key], **value}
+        else:
+            layout[key] = value
+    return layout
+
+
+def chart(fig: go.Figure, theme: str, height: int, **overrides: Any) -> None:
+    fig.update_layout(**chart_layout(theme, height, **overrides))
     st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
 
