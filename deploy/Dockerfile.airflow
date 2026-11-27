@@ -1,0 +1,11 @@
+# Airflow 2.10 with GridPulse in its own virtualenv (/opt/gridpulse-venv), so Airflow's pinned
+# packages and ours never mix. DAG tasks call: /opt/gridpulse-venv/bin/python -m gridpulse.cli <step>
+FROM apache/airflow:2.10.5-python3.12
+
+USER root
+COPY pyproject.toml README.md /opt/gridpulse/
+COPY src /opt/gridpulse/src
+RUN python -m venv /opt/gridpulse-venv \
+    && PIP_USER=false /opt/gridpulse-venv/bin/pip install --no-cache-dir -e /opt/gridpulse \
+    && chown -R airflow:0 /opt/gridpulse /opt/gridpulse-venv
+USER airflow

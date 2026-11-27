@@ -20,6 +20,10 @@ function Invoke-Lint {
     Invoke-Step $Py @("-m", "black", "--check", ".")
 }
 function Invoke-Test { Invoke-Step $Py @("-m", "pytest", "-q") }
+$Compose = @("compose", "--env-file", ".env", "-f", "deploy/docker-compose.yml")
+function Invoke-Compose([string[]]$ComposeArgs) { Invoke-Step "docker" ($Compose + $ComposeArgs) }
+function Initialize-Env { Invoke-Step "py" @("-3", "scripts/init_env.py") }
+$Args2 = @($Rest | Where-Object { $_ })
 
 switch ($Target) {
     "venv" {
@@ -30,11 +34,20 @@ switch ($Target) {
     "lint" { Invoke-Lint }
     "test" { Invoke-Test }
     "check" { Invoke-Lint; Invoke-Test }
-    "generate" { Invoke-Step $Py (@("-m", "gridpulse.generator") + @($Rest | Where-Object { $_ })) }
-    { $_ -in @("up", "down", "reset", "logs") } { Write-Output "TODO: built in P3" }
+    "generate" { Invoke-Step $Py (@("-m", "gridpulse.generator") + $Args2) }
+    "up" {
+        Initialize-Env
+        Invoke-Compose @("up", "-d", "--build", "--wait")
+        Invoke-Compose @("ps")
+        Write-Output "Airflow: http://localhost:8080   Streamlit: http://localhost:8501"
+    }
+    "down" { Invoke-Compose @("down") }
+    "reset" { Invoke-Compose @("down", "--volumes", "--remove-orphans") }
+    "logs" { Invoke-Compose (@("logs", "--tail", "200") + $Args2) }
+    "seed" { Initialize-Env; Invoke-Compose @("run", "--rm", "gridpulse-init") }
     { $_ -in @("run-day", "backfill", "rollback") } { Write-Output "TODO: built in P8" }
     default {
-        Write-Output "Targets: venv lint test check generate up down reset logs run-day backfill rollback"
+        Write-Output "Targets: venv lint test check generate up down reset logs seed run-day backfill rollback"
         if ($Target -ne "help") { exit 1 }
     }
 }

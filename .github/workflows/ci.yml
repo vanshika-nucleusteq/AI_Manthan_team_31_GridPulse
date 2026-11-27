@@ -22,3 +22,7 @@ jobs:
           black --check .
       - name: Unit tests
         run: pytest -q
+      - name: Validate compose file
+        run: |
+          cp .env.example .env
+          docker compose --env-file .env -f deploy/docker-compose.yml config -q
