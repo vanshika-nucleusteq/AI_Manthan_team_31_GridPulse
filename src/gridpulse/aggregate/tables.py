@@ -12,6 +12,8 @@ class GoldTable:
     order_by: str
     partition: str  # "date" (local_date) or "month"
     zone_partitioned: bool  # adds a zone=Zn/ sub-folder under the date folder
+    producer: str = "aggregate"  # the step that writes it
+    extra_days: int = 0  # days before the lookback window that the producer also rewrites
 
 
 HOURLY = ("kwh", "intervals_present")
@@ -96,4 +98,25 @@ TABLES: tuple[GoldTable, ...] = (
         False,
     ),
 )
+ANOMALIES = GoldTable(
+    "anomalies",
+    (
+        "anomaly_id",
+        "type",
+        "meter_id",
+        "feeder_id",
+        "zone_id",
+        "local_date",
+        "window_start",
+        "window_end",
+        "score",
+        "details",
+    ),
+    "window_start, anomaly_id",
+    "date",
+    True,
+    producer="anomalies",
+    extra_days=3,  # anomalies.yaml scan_context_days
+)
+TABLES = (*TABLES, ANOMALIES)
 BY_NAME = {t.name: t for t in TABLES}

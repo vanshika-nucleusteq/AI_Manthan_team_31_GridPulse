@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 import psycopg
@@ -10,7 +10,7 @@ import psycopg
 from gridpulse.aggregate.run import part_name, window
 from gridpulse.aggregate.tables import TABLES, GoldTable
 from gridpulse.common.db import db_url
-from gridpulse.common.lake import Lake, lake_from_config
+from gridpulse.common.lake import Lake, clamp_days, lake_from_config
 from gridpulse.ingest.bronze import connect
 
 
@@ -22,6 +22,13 @@ def statements(table: GoldTable) -> tuple[str, str]:
         f"DELETE FROM {table.name} WHERE {key} = %s",
         f"COPY {table.name} ({columns}) FROM STDIN",
     )
+
+
+def publish_keys(table: GoldTable, days: list[date], months: list[date]) -> list[date]:
+    if table.partition == "month":
+        return months
+    extra = [days[0] - timedelta(days=i) for i in range(table.extra_days, 0, -1)]
+    return clamp_days(extra) + days
 
 
 def partition_rows(duck: Any, lake: Lake, table: GoldTable, key: date) -> list[tuple]:
@@ -47,7 +54,7 @@ def publish(ds: date, lake: Lake | None = None, conninfo: str | None = None) -> 
             for table in TABLES:
                 delete, copy_sql = statements(table)
                 rows[table.name] = 0
-                for key in months if table.partition == "month" else days:
+                for key in publish_keys(table, days, months):
                     pg.execute(delete, (key,))
                     data = partition_rows(duck, lake, table, key)
                     if data:

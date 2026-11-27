@@ -116,7 +116,7 @@ def aggregate(ds: date, lake: Lake | None = None, run_id: str | None = None) -> 
     con = connect()
     load_inputs(con, lake, ds, days, months)
     rows: dict[str, int] = {}
-    for table in TABLES:
+    for table in (t for t in TABLES if t.producer == "aggregate"):
         keys = months if table.partition == "month" else days
         column = "month" if table.partition == "month" else "local_date"
         rows[table.name] = 0
