@@ -1,0 +1,60 @@
+# Synthetic data generator settings (docs/plan-data.md). Shares are fractions of readings or files.
+defaults:
+  meters: 5000
+  days: 14
+  start: "2026-08-01"        # local (Asia/Kolkata) date of the first interval
+  seed: 42
+
+topology:
+  feeders: 20
+  zone_feeders: {Z1: 4, Z2: 4, Z3: 3, Z4: 3, Z5: 3, Z6: 3}
+
+meters:
+  residential_share: 0.8
+  register_max_kwh: 100000
+  start_register_kwh: [1000, 50000]
+  install_years: [2018, 2025]
+  scale_sigma: 0.3           # lognormal spread of meter size
+
+consumption:
+  base_kwh_per_interval: {residential: 0.05, commercial: 0.25}
+  noise_sd: 0.15             # relative noise per interval
+  min_interval_wh: 10        # floor; must exceed injections.conflict_delta_wh max
+  hourly_profile:            # local hour 0..23, multiplier of base
+    residential: [0.4, 0.35, 0.3, 0.3, 0.35, 0.5, 0.9, 1.3, 1.2, 0.9, 0.8, 0.8,
+                  0.85, 0.8, 0.75, 0.8, 0.95, 1.2, 1.6, 1.8, 1.7, 1.4, 0.9, 0.6]
+    commercial: [0.2, 0.2, 0.2, 0.2, 0.2, 0.3, 0.5, 0.8, 1.2, 1.5, 1.6, 1.6,
+                 1.5, 1.6, 1.6, 1.5, 1.4, 1.2, 0.8, 0.5, 0.4, 0.3, 0.25, 0.2]
+
+schema_v2:
+  meter_share: 0.40
+  switch_day: 45             # used when days > switch_day, otherwise days // 2 (at least 1)
+  kwh_meter_share: 0.15      # of v2 meters
+  missing_unit_share: 0.02   # of v2 readings from kWh meters
+  explicit_version_meter_share: 0.5
+  voltage_volts: [220, 250]
+  voltage_null_share: 0.005
+  firmware_versions: ["2.4.1", "2.4.2", "2.5.0"]
+
+files:
+  arrival_delay_minutes: 5   # after the end of the data hour
+  resend_delay_minutes: 15   # duplicate resend file, after the primary file
+  gzip_level: 5
+
+injections:
+  exact_duplicate_share: 0.02
+  conflict_duplicate_share: 0.002
+  conflict_delta_wh: [1, 5]
+  late_file_share: 0.03
+  late_days: [1, 2]
+  random_missing_share: 0.01
+  half_day_missing_meters: 1
+  spike: {meters: 10, factor: [6, 10], hours: 1, local_hours: [8, 20]}
+  tamper: {meters: 3, zero_hours: 60}
+  outage: {feeder: F07, hours: 2, meter_share: 0.8, local_hours: [10, 16]}
+  unknown_meter_share: 0.001
+  unknown_meter_id_start: 9001
+  negative_readings: 20
+  decreasing_readings: 20
+  decrease_wh: [1000, 5000]
+  rollover_meters: 5
