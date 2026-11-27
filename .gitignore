@@ -11,3 +11,5 @@ dist/
 .ruff_cache/
 logs/
 .claude/settings.local.json
+docs/chat-export.md
+docs/handoff.md
