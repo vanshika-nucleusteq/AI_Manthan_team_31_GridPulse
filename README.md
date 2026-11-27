@@ -51,7 +51,9 @@ If `make.ps1 up` ran before `generate`, load the meter master afterwards with `m
 | `make.ps1 reset` | stop and **delete** the database and log volumes (`data/` is kept) |
 | `make.ps1 logs [service]` | last 200 log lines, e.g. `make.ps1 logs airflow-scheduler` |
 | `make.ps1 seed` | re-run table creation and the meter master upsert |
-| `run-day`, `backfill`, `rollback` | built in P8 |
+| `make.ps1 run-day 2026-08-14` | run the whole `gridpulse_daily` DAG for one IST day (Airflow backfill) |
+| `make.ps1 backfill 2026-08-01 2026-08-21` | the same for a date range, one run at a time |
+| `make.ps1 rollback 2026-08-14 [RUN_ID]` | restore that day's gold from the archive of the latest (or given) run and republish; the replaced version is kept as `rolled_back__<run>` |
 
 ### Integration tests (stack must be up)
 ```
@@ -62,3 +64,9 @@ If `make.ps1 up` ran before `generate`, load the meter master afterwards with `m
 Airflow keeps its own Python. GridPulse is installed in a separate virtualenv inside the Airflow image
 (`/opt/gridpulse-venv`), and DAG tasks call `/opt/gridpulse-venv/bin/python -m gridpulse.cli <step> --ds {{ ds }}`.
 `src/` is mounted into the containers, so code changes apply without a rebuild.
+
+### Airflow schedule
+`gridpulse_daily` is unscheduled and paused by default (`orchestration.schedule: null` in `config/pipeline.yaml`):
+the demo data is dated August 2026, so a wall-clock schedule would process empty days. Use `run-day` and
+`backfill`. In production set `schedule: "0 0 * * *"` (05:30 IST; Airflow's `ds` is then the IST day).
+Every task writes a row to the PostgreSQL table `pipeline_runs`.
