@@ -35,6 +35,9 @@ class Lake:
     def bronze(self, arrival_date: date) -> Path:
         return self.root / "bronze" / f"arrival_date={arrival_date.isoformat()}"
 
+    def silver(self, table: str, day: date) -> Path:
+        return self.root / "silver" / table / f"date={day.isoformat()}"
+
     def quarantine(self, day: date) -> Path:
         return self.root / "quarantine" / f"date={day.isoformat()}"
 
@@ -49,23 +52,50 @@ def sql_path(path: Path) -> str:
     return "'" + path.as_posix().replace("'", "''") + "'"
 
 
-def overwrite_partition(con: Any, select_sql: str, target: Path, order_by: str) -> int:
-    """Write select_sql to target/part-0.parquet via a temp folder, then swap it in."""
-    tmp = target.with_name(target.name + ".tmp")
-    old = target.with_name(target.name + ".old")
-    for leftover in (tmp, old):
+def _fresh_tmp(target: Path) -> Path:
+    for leftover in (
+        target.with_name(target.name + ".tmp"),
+        target.with_name(target.name + ".old"),
+    ):
         if leftover.exists():
             shutil.rmtree(leftover)
+    tmp = target.with_name(target.name + ".tmp")
     tmp.mkdir(parents=True)
-    rows = con.execute(
-        f"COPY ({select_sql} ORDER BY {order_by}) TO {sql_path(tmp / PART_FILE)} "
-        "(FORMAT parquet, COMPRESSION zstd)"
-    ).fetchone()[0]
+    return tmp
+
+
+def _swap(tmp: Path, target: Path) -> None:
+    old = target.with_name(target.name + ".old")
     if target.exists():
         target.rename(old)
     tmp.rename(target)
     if old.exists():
         shutil.rmtree(old)
+
+
+def overwrite_partition(con: Any, select_sql: str, target: Path, order_by: str) -> int:
+    """Write select_sql to target/part-0.parquet via a temp folder, then swap it in."""
+    tmp = _fresh_tmp(target)
+    rows = con.execute(
+        f"COPY ({select_sql} ORDER BY {order_by}) TO {sql_path(tmp / PART_FILE)} "
+        "(FORMAT parquet, COMPRESSION zstd)"
+    ).fetchone()[0]
+    _swap(tmp, target)
+    return int(rows)
+
+
+def overwrite_partitioned(
+    con: Any, select_sql: str, target: Path, order_by: str, partition_by: str
+) -> int:
+    """Like overwrite_partition, with Hive sub-folders (e.g. zone=Z1/) swapped in as one unit, so
+    a sub-partition that comes out empty cannot leave stale files behind."""
+    tmp = _fresh_tmp(target)
+    rows = con.execute(
+        f"COPY ({select_sql} ORDER BY {order_by}) TO {sql_path(tmp)} (FORMAT parquet, "
+        f"COMPRESSION zstd, PARTITION_BY ({partition_by}), FILENAME_PATTERN 'part-{{i}}', "
+        "OVERWRITE_OR_IGNORE true)"
+    ).fetchone()[0]
+    _swap(tmp, target)
     return int(rows)
 
 
