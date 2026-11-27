@@ -30,30 +30,6 @@ def rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def human_bytes(n: int | None) -> str:
-    if n is None:
-        return "—"
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if n < 1024 or unit == "TB":
-            return f"{n:,.0f} {unit}" if unit == "B" else f"{n:,.1f} {unit}"
-        n /= 1024
-    return "—"
-
-
-def duration(seconds: float | None) -> str:
-    if seconds is None or pd.isna(seconds):
-        return "—"
-    m, s = divmod(int(round(seconds)), 60)
-    return f"{m}m {s:02d}s" if m else f"{s}s"
-
-
-def compact(n: Any) -> str:
-    if n is None or pd.isna(n):
-        return "—"
-    n = float(n)
-    return f"{n / 1e6:.1f}M" if n >= 1e6 else f"{n / 1e3:.1f}k" if n >= 1e3 else f"{n:,.0f}"
-
-
 def chart(fig: go.Figure, theme: str, height: int, **layout: Any) -> None:
     base = plotly_layout(theme, height)
     for axis in ("xaxis", "yaxis"):
@@ -482,76 +458,13 @@ def billing_table(ctx: dict[str, Any]) -> None:
         )
 
 
-TASK_DESC = {
-    "ingest": "Landing → bronze, schema v1/v2",
-    "quality": "8 rules → quarantine",
-    "normalise": "kWh · dedup · order · gaps",
-    "aggregate": "Hourly · daily · billing",
-    "anomalies": "Spike · tamper · outage",
-    "publish": "Gold → PostgreSQL",
-    "compact": "One file per partition",
-    "retention": "Raw 30 d · hourly 13 mo",
-    "metrics": "SRE metrics and alert (P10)",
-}
-
-
-def pipeline_flow(ctx: dict[str, Any]) -> None:
-    day = ctx["day"]
-    run_id = data.run_for(day)
-    with st.container(key="panel_pipeline"):
-        if run_id is None:
-            c.render(c.panel_head("dag: gridpulse_daily", "Orchestrated daily run"))
-            c.render(
-                c.empty(
-                    f"No Airflow run recorded for {fmt_day(day)}. "
-                    f"Run: make.ps1 run-day {day.isoformat()}"
-                )
-            )
-            return
-        tasks = data.run_tasks(run_id)
-        started = pd.Timestamp(tasks["started_at"].min()).tz_convert(data.TZ)
-        elapsed = pd.Timestamp(tasks["finished_at"].max()) - pd.Timestamp(tasks["started_at"].min())
-        action = (
-            f'<span class="mono muted" style="font-size:12px">started {started:%d %b %H:%M} IST · '
-            f"elapsed {duration(elapsed.total_seconds())}</span>"
-        )
-        c.render(
-            c.panel_head(
-                f"dag: gridpulse_daily · run {day.isoformat()}", "Orchestrated daily run", action
-            )
-        )
-        by_task = {r.task: r for r in tasks.itertuples()}
-        steps = []
-        for name in data.DAG_TASKS:
-            r = by_task.get(name)
-            if r is None:
-                steps.append(
-                    {
-                        "name": name,
-                        "desc": TASK_DESC[name],
-                        "status": "queued",
-                        "duration": "—",
-                        "records": "not built" if name == "metrics" else "—",
-                    }
-                )
-                continue
-            steps.append(
-                {
-                    "name": name,
-                    "desc": TASK_DESC[name],
-                    "status": "success" if r.status == "success" else "failed",
-                    "duration": duration(float(r.duration_s)),
-                    "records": compact(r.rows_out),
-                }
-            )
-        c.render(c.stepper(steps))
-
-
 def run_history(ctx: dict[str, Any]) -> None:
     theme, t = ctx["theme"], THEMES[ctx["theme"]]
     runs = data.runs(14, ctx["day"]).sort_values("ds")
     with st.container(key="panel_runs"):
-        c.render(c.panel_head("Run duration · minutes", f"Last {len(runs)} daily runs"))
+        c.render(
+            c.panel_head("Minutes per daily run", f"Pipeline run time · last {len(runs)} days")
+        )
         if runs.empty:
             c.render(c.empty("No runs recorded in pipeline_runs yet."))
             return
@@ -611,95 +524,37 @@ def ingest_lag(ctx: dict[str, Any]) -> None:
         chart(fig, theme, 224, xaxis={"tickmode": "array", "tickvals": labels[::4]})
 
 
-def backfill(ctx: dict[str, Any]) -> None:
-    day = ctx["day"]
-    orch = load_yaml("pipeline")["orchestration"]
-    with st.container(key="panel_backfill"):
-        c.render(c.panel_head("Re-run for a date range", "Backfill"))
-        a, b = st.columns(2)
-        start = a.date_input(
-            "From",
-            value=day - timedelta(days=2),
-            key="backfill_from",
-            min_value=go_live(),
-            max_value=day,
-        )
-        end = b.date_input("To", value=day, key="backfill_to", min_value=go_live(), max_value=day)
-        if st.button("↺  Queue backfill", key="queue_backfill"):
-            if start > end:
-                st.session_state["backfill_msg"] = "From must be on or before To."
-            else:
-                st.session_state["backfill_msg"] = (
-                    f"Run on the driver laptop: make.ps1 backfill {start} {end} · "
-                    "idempotent overwrite of date partitions"
-                )
-        msg = st.session_state.get("backfill_msg") or (
-            f"Retries: {orch['retries']} · {orch['retry_delay_minutes']} min apart · "
-            f"max {orch['max_active_runs']} active run"
-        )
-        c.render(
-            f'<p class="mono muted" style="margin:0;font-size:11px;min-height:16px">{c.e(msg)}</p>'
-        )
-
-
-def storage_policy(ctx: dict[str, Any]) -> None:
-    r, sizes = data.retention(), data.folder_sizes()
-    rows = [
-        (
-            "landing",
-            "arrival_date / feeder",
-            "gateway files kept as received",
-            f"{r['raw_days']} days",
-        ),
-        ("bronze", "arrival_date", "one Parquet per arrival day", f"{r['bronze_days']} days"),
-        (
-            "quarantine",
-            "date",
-            "one Parquet per day, rule + reason",
-            f"{r['quarantine_days']} days",
-        ),
-        (
-            "silver",
-            "date / zone",
-            "one file per zone, sorted meter_id, interval_start",
-            f"{r['silver_months']} months",
-        ),
-        (
-            "gold",
-            "date / zone · month",
-            "nightly compaction to one file",
-            f"hourly {r['hourly_months']} months",
-        ),
-        (
-            "_archive",
-            "table / run_id",
-            "replaced gold partitions for rollback",
-            f"{r['archive_days']} days",
-        ),
-    ]
-    body = [
-        [
-            f'<span class="mono" style="font-weight:600">{name}</span>',
-            f'<span class="mono muted" style="font-size:12px">{c.e(part)}</span>',
-            f'<span class="muted" style="font-size:12px">{c.e(comp)}</span>',
-            f'<span class="delta" style="background:var(--accent);color:var(--accent-foreground)">{c.e(ret)}</span>',
-            f'<span class="mono">{human_bytes(sizes.get(name))}</span>',
-        ]
-        for name, part, comp, ret in rows
-    ]
-    with st.container(key="panel_storage"):
-        c.render(c.panel_head("Time-series storage layout", "Partitioning, compaction & retention"))
-        c.render(
-            c.table(
-                [
-                    ("Layer", False),
-                    ("Partition", False),
-                    ("Compaction", False),
-                    ("Retention", False),
-                    ("Size", True),
-                ],
-                body,
+# ---------- views ----------
+def quarantine_by_rule(ctx: dict[str, Any]) -> None:
+    theme, t, day = ctx["theme"], THEMES[ctx["theme"]], ctx["day"]
+    df = data.quarantine_rules(day)
+    with st.container(key="panel_quarantine"):
+        c.render(c.panel_head(f"Dead-letter · {short_day(day)}", "Quarantined rows by rule"))
+        if df.empty:
+            c.render(c.empty("No rows were quarantined for this day."))
+            return
+        fig = go.Figure(
+            go.Bar(
+                x=df["failures"],
+                y=df["rule"],
+                orientation="h",
+                marker={"color": t["warning"]},
+                hovertemplate="%{x:,} rows<extra></extra>",
             )
+        )
+        chart(
+            fig,
+            theme,
+            224,
+            barcornerradius=6,
+            hovermode="closest",
+            yaxis={"showgrid": False, "autorange": "reversed"},
+            xaxis={
+                "showgrid": True,
+                "gridcolor": t["border"],
+                "griddash": "dot",
+                "tickformat": "~s",
+            },
         )
 
 
@@ -712,13 +567,7 @@ def overview(ctx: dict[str, Any]) -> None:
         feeder_consumption(ctx)
     with b:
         zone_completeness(ctx)
-    a, b = st.columns([2, 1], gap="large")
-    with a:
-        anomaly_list(ctx, 5, "feed_overview")
-    with b:
-        schema_mix(ctx)
-    feeder_heatmap(ctx)
-    pipeline_flow(ctx)
+    anomaly_list(ctx, 5, "feed_overview")
 
 
 def consumption(ctx: dict[str, Any]) -> None:
@@ -734,7 +583,6 @@ def anomalies(ctx: dict[str, Any]) -> None:
 
 
 def quality(ctx: dict[str, Any]) -> None:
-    kpi_strip(ctx)
     a, b, d = st.columns(3, gap="large")
     with a:
         zone_completeness(ctx)
@@ -746,15 +594,13 @@ def quality(ctx: dict[str, Any]) -> None:
 
 
 def pipeline(ctx: dict[str, Any]) -> None:
-    pipeline_flow(ctx)
-    a, b, d = st.columns(3, gap="large")
+    kpi_strip(ctx)
+    a, b = st.columns(2, gap="large")
     with a:
         run_history(ctx)
     with b:
         ingest_lag(ctx)
-    with d:
-        backfill(ctx)
-    storage_policy(ctx)
+    quarantine_by_rule(ctx)
 
 
 VIEWS = {

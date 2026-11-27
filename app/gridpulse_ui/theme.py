@@ -90,7 +90,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{ background: var(--back
 .logo {{ display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }}
 .logo-mark {{ width: 36px; height: 36px; border-radius: 12px; background: var(--primary);
   display: flex; align-items: center; justify-content: center; color: var(--primary-foreground); }}
-.logo b {{ display: block; font-size: 14px; font-weight: 700; letter-spacing: -.01em; }}
+.logo b {{ display: block; font-size: 14px; font-weight: 700; letter-spacing: -.01em; color: var(--foreground); }}
+[data-testid="stSidebar"] .eyebrow {{ color: var(--muted-foreground) !important; opacity: 1; }}
 .logo small {{ font-family: var(--mono) !important; font-size: 10px; text-transform: uppercase;
   letter-spacing: .18em; color: var(--muted-foreground); }}
 [class*="st-key-nav_"] button {{ width: 100%; justify-content: flex-start; background: transparent;
@@ -99,12 +100,6 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{ background: var(--back
 [class*="st-key-nav_"] button:hover {{ background: color-mix(in srgb, var(--sidebar-accent) 60%,
   transparent); color: var(--foreground); border: none; }}
 [class*="st-key-nav_"] button p {{ font-size: 14px; }}
-.status-card {{ margin-top: 24px; border: 1px solid var(--sidebar-border); background: var(--card);
-  border-radius: 16px; padding: 16px; }}
-.status-card .t {{ font-size: 12px !important; font-weight: 500; margin: 0; color: var(--foreground); display: flex; align-items: center; gap: 8px; }}
-.status-card .d {{ margin: 8px 0 0; font-size: 12px !important; line-height: 1.6; color: var(--muted-foreground); }}
-.track {{ margin-top: 12px; height: 6px; border-radius: 999px; background: var(--muted); overflow: hidden; }}
-.track > i {{ display: block; height: 100%; border-radius: 999px; background: var(--primary); }}
 
 /* live dot */
 .live {{ position: relative; display: inline-flex; width: 8px; height: 8px; flex: none; }}
@@ -126,11 +121,6 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{ background: var(--back
   color: var(--muted-foreground); white-space: nowrap; }}
 .chip.live-chip {{ background: var(--accent); color: var(--accent-foreground); font-weight: 500;
   border-color: color-mix(in srgb, var(--primary) 30%, transparent); }}
-.bell {{ position: relative; width: 36px; height: 36px; border-radius: 999px; border: 1px solid
-  var(--border); background: var(--card); display: inline-flex; align-items: center;
-  justify-content: center; color: var(--muted-foreground); }}
-.bell i {{ position: absolute; right: 9px; top: 9px; width: 6px; height: 6px; border-radius: 999px;
-  background: var(--destructive); }}
 .st-key-day_select label {{ display: none; }}
 .st-key-day_select [data-baseweb="select"] > div {{ border-radius: 999px; background: var(--card);
   border: 1px solid var(--border); min-height: 34px; font-family: var(--mono); font-size: 12px; }}
@@ -148,7 +138,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{ background: var(--back
   color: var(--foreground) !important; }}
 [data-testid="stBaseButton-pillsActive"] {{ background: var(--foreground) !important;
   color: var(--background) !important; }}
-.st-key-theme_ctl [data-testid="stButtonGroup"] {{ border: 1px solid var(--border); border-radius: 999px;
+.st-key-theme_ctl {{ display: flex; justify-content: flex-end; }}
+.st-key-theme_ctl [data-testid="stButtonGroup"] {{ width: fit-content; flex-wrap: nowrap; margin-left: auto; border: 1px solid var(--border); border-radius: 999px;
   padding: 3px; background: color-mix(in srgb, var(--muted) 60%, transparent); }}
 .st-key-theme_ctl [data-testid="stBaseButton-segmented_controlActive"] {{ background: var(--{active_bg})
   !important; color: var(--{active_fg}) !important; }}
@@ -215,7 +206,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {{ background: var(--back
 @media (prefers-reduced-motion: reduce) {{ .pulse-line {{ animation: none; stroke-dashoffset: 0; }}
   .live::before, .spin, .spin-slow {{ animation: none; }} }}
 
-/* lists, tables, heatmap, stepper */
+/* lists, tables, heatmap */
 .legend {{ display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--muted-foreground);
   flex-wrap: wrap; }}
 .legend span {{ display: inline-flex; align-items: center; gap: 6px; }}
@@ -253,35 +244,11 @@ table.gp tbody tr:hover {{ background: color-mix(in srgb, var(--muted) 40%, tran
 .bar > i {{ display: block; height: 100%; border-radius: 999px; }}
 .bar > b {{ position: absolute; top: -4px; left: 90%; width: 2px; height: 18px; border-radius: 2px;
   background: color-mix(in srgb, var(--foreground) 60%, transparent); }}
-.steps {{ display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin: 0; list-style: none;
-  padding-left: 0; }}
-.step {{ display: flex; flex-direction: column; flex: 1; min-width: 150px; }}
-.step .ring {{ width: 32px; height: 32px; flex: none; border-radius: 999px; border: 2px solid;
-  display: flex; align-items: center; justify-content: center; background: var(--card); }}
-.step .conn {{ margin-left: 8px; height: 2px; flex: 1; border-radius: 2px; }}
-.step .box {{ flex: 1; border-radius: 12px; border: 1px solid var(--border); padding: 12px;
-  background: color-mix(in srgb, var(--background) 50%, transparent); }}
-.step .box.retry {{ border-color: color-mix(in srgb, var(--warning) 40%, transparent);
-  background: color-mix(in srgb, var(--warning) 5%, transparent); }}
-.step .box.fail {{ border-color: color-mix(in srgb, var(--destructive) 40%, transparent);
-  background: color-mix(in srgb, var(--destructive) 6%, transparent); }}
 .note-box {{ border-radius: 12px; background: color-mix(in srgb, var(--muted) 70%, transparent);
   padding: 12px; font-family: var(--mono) !important; font-size: 11px; line-height: 1.6;
   color: var(--muted-foreground); }}
 .empty {{ border: 1px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center;
   color: var(--muted-foreground); font-size: 13px; }}
-
-/* backfill form */
-.st-key-panel_backfill [data-testid="stDateInput"] label p {{ font-size: 12px;
-  color: var(--muted-foreground); }}
-.st-key-panel_backfill [data-baseweb="input"] {{ border-radius: 12px; background: var(--background);
-  border-color: var(--input); }}
-.st-key-panel_backfill input {{ font-family: var(--mono) !important; font-size: 14px; }}
-.st-key-queue_backfill button {{ width: 100%; height: 40px; border-radius: 12px; border: none;
-  background: var(--primary); color: var(--primary-foreground); font-weight: 600; }}
-.st-key-queue_backfill button:hover {{ background: color-mix(in srgb, var(--primary) 85%, black);
-  color: var(--primary-foreground); }}
-.st-key-queue_backfill button p {{ color: var(--primary-foreground) !important; }}
 
 @media (max-width: 1100px) {{ .kpis {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .hero .inner {{ grid-template-columns: 1fr; }} }}

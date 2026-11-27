@@ -4,9 +4,7 @@ read-only lake reads (bronze) for schema mix, ingest lag and storage sizes. Cach
 from __future__ import annotations
 
 import json
-import os
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -19,17 +17,6 @@ from gridpulse.common.db import sqlalchemy_url
 from gridpulse.common.lake import go_live, lake_from_config
 
 TZ = "Asia/Kolkata"
-DAG_TASKS = [
-    "ingest",
-    "quality",
-    "normalise",
-    "aggregate",
-    "anomalies",
-    "publish",
-    "compact",
-    "retention",
-    "metrics",
-]
 
 
 @st.cache_resource
@@ -176,6 +163,13 @@ def quality_counts(day: date) -> dict[str, Any]:
     }
 
 
+def quarantine_rules(day: date) -> pd.DataFrame:
+    return query(
+        "SELECT rule, failures FROM data_quality_daily WHERE local_date = :day ORDER BY failures DESC",
+        day=day,
+    )
+
+
 def quarantined_by_day(day: date, n: int = 12) -> pd.DataFrame:
     return query(
         "SELECT local_date, sum(failures) AS failures FROM data_quality_daily "
@@ -197,18 +191,6 @@ def runs(n: int, day: date) -> pd.DataFrame:
         day=day,
         first=go_live(),
     )
-
-
-def run_tasks(run_id: str) -> pd.DataFrame:
-    return query("SELECT * FROM pipeline_runs WHERE run_id = :r ORDER BY started_at", r=run_id)
-
-
-def run_for(day: date) -> str | None:
-    df = query(
-        "SELECT run_id FROM pipeline_runs WHERE ds = :day ORDER BY finished_at DESC LIMIT 1",
-        day=day,
-    )
-    return None if df.empty else str(df.iloc[0]["run_id"])
 
 
 def duplicates_by_day(day: date, n: int = 12) -> pd.DataFrame:
@@ -258,39 +240,3 @@ def ingest_lag(day: date) -> pd.DataFrame | None:
         f"FROM read_parquet('{path}') WHERE ts IS NOT NULL "
         f"AND (ts AT TIME ZONE 'Asia/Kolkata')::DATE = DATE '{day}' GROUP BY 1 ORDER BY 1"
     ).df()
-
-
-def _tree_size(path: str) -> int:
-    """Sum of file sizes; os.scandir entries carry the size on Windows, so no stat per file."""
-    total = 0
-    with os.scandir(path) as entries:
-        for entry in entries:
-            if entry.is_dir(follow_symlinks=False):
-                total += _tree_size(entry.path)
-            elif entry.is_file(follow_symlinks=False):
-                total += entry.stat(follow_symlinks=False).st_size
-    return total
-
-
-@st.cache_data(ttl=600, show_spinner=False)
-def folder_sizes() -> dict[str, int | None]:
-    lake = lake_from_config()
-    targets = {
-        "landing": lake.landing,
-        "bronze": lake.root / "bronze",
-        "quarantine": lake.root / "quarantine",
-        "silver": lake.root / "silver",
-        "gold": lake.root / "gold",
-        "_archive": lake.root / "_archive",
-    }
-    sizes: dict[str, int | None] = {}
-    for name, folder in targets.items():
-        if not Path(folder).exists():
-            sizes[name] = None
-            continue
-        sizes[name] = _tree_size(str(folder))
-    return sizes
-
-
-def retention() -> dict[str, Any]:
-    return load_yaml("pipeline")["retention"]

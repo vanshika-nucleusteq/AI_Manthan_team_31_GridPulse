@@ -1,4 +1,4 @@
-"""HTML helpers: Lucide-style icons, hero, KPI cards, sparkline, feed, heatmap, bars, tables, stepper."""
+"""HTML helpers: Lucide-style icons, hero, KPI cards, sparkline, feed, heatmap, bars, tables."""
 
 from __future__ import annotations
 
@@ -11,8 +11,6 @@ ICONS = {
     "activity": '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     "calendar": '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/>'
     '<path d="M3 10h18"/>',
-    "bell": '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0'
-    ' .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
     "trending-up": '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
     "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0'
     ' 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>'
@@ -72,14 +70,6 @@ def logo() -> str:
     )
 
 
-def status_card(title: str, detail: str, pct: float, live: bool) -> str:
-    dot = '<span class="live"></span>' if live else ""
-    return (
-        f'<div class="status-card"><p class="t">{dot}{e(title)}</p><p class="d">{detail}</p>'
-        f'<div class="track"><i style="width:{max(0, min(100, pct)):.0f}%"></i></div></div>'
-    )
-
-
 def crumb(label: str) -> str:
     return f'<div class="crumb"><p class="eyebrow">Network operations / {e(label)}</p><h1>{e(label)}</h1></div>'
 
@@ -88,7 +78,7 @@ def header_chips(live_text: str) -> str:
     return (
         '<div class="hdr-right">'
         f'<span class="chip live-chip"><span class="live" style="width:6px;height:6px"></span>{e(live_text)}</span>'
-        f'<span class="bell" role="img" aria-label="Notifications">{icon("bell", 16)}<i></i></span></div>'
+        "</div>"
     )
 
 
@@ -309,55 +299,6 @@ def quality_rules(rows: list[dict[str, Any]]) -> str:
             f'<span class="mono" style="font-size:14px">{rate:.2f}%</span></li>'
         )
     return f'<ul style="list-style:none;margin:0;padding:0">{"".join(items)}</ul>'
-
-
-STEP_STYLE = {
-    "success": (
-        "circle-check",
-        "",
-        "var(--primary)",
-        "color-mix(in srgb,var(--primary) 50%,transparent)",
-    ),
-    "running": (
-        "loader",
-        "spin",
-        "var(--chart-2)",
-        "color-mix(in srgb,var(--chart-2) 50%,transparent)",
-    ),
-    "retrying": (
-        "refresh",
-        "spin-slow",
-        "var(--warning)",
-        "color-mix(in srgb,var(--warning) 60%,transparent)",
-    ),
-    "failed": (
-        "circle-x",
-        "",
-        "var(--destructive)",
-        "color-mix(in srgb,var(--destructive) 60%,transparent)",
-    ),
-    "queued": ("clock", "", "var(--muted-foreground)", "var(--border)"),
-}
-
-
-def stepper(steps: list[dict[str, Any]]) -> str:
-    items = []
-    for i, s in enumerate(steps):
-        ic, cls, color, ring = STEP_STYLE[s["status"]]
-        conn = ""
-        if i < len(steps) - 1:
-            bg = "var(--primary)" if s["status"] == "success" else "var(--border)"
-            conn = f'<span class="conn" style="background:{bg}"></span>'
-        box = {"retrying": " retry", "failed": " fail"}.get(s["status"], "")
-        items.append(
-            f'<li class="step"><div style="display:flex;align-items:center;margin-bottom:12px">'
-            f'<span class="ring" style="border-color:{ring};color:{color}">{icon(ic, 16, cls)}</span>{conn}</div>'
-            f'<div class="box{box}"><p class="mono" style="margin:0;font-size:12px;font-weight:600">{e(s["name"])}</p>'
-            f'<p class="muted" style="margin:2px 0 0;font-size:11px;line-height:1.4">{e(s["desc"])}</p>'
-            f'<div class="mono muted" style="margin-top:8px;display:flex;justify-content:space-between;'
-            f'font-size:11px"><span>{e(s["duration"])}</span><span>{e(s["records"])}</span></div></div></li>'
-        )
-    return f'<ol class="steps">{"".join(items)}</ol>'
 
 
 def table(headers: list[tuple[str, bool]], rows: list[list[str]]) -> str:

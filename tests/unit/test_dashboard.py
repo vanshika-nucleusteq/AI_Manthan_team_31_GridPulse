@@ -15,7 +15,7 @@ pytest.importorskip("streamlit")
 pytest.importorskip("plotly")
 
 from gridpulse_ui import components as c  # noqa: E402
-from gridpulse_ui.views import anomaly_rows, compact, duration  # noqa: E402
+from gridpulse_ui.views import anomaly_rows  # noqa: E402
 
 
 def test_heatmap_marks_low_and_missing_hours_as_hatched_gaps() -> None:
@@ -85,15 +85,6 @@ def test_anomaly_rows_map_type_to_severity_and_metric() -> None:
     ]
     assert rows[0]["detail"] == "200 of 250 meters silent for 120 min together"
     assert rows[0]["when"] == "11 Aug 11:00 IST · open"  # 05:30 UTC is 11:00 IST
-
-
-def test_number_formats() -> None:
-    assert (compact(382_500), compact(1_250_000), duration(75), duration(9)) == (
-        "382.5k",
-        "1.2M",
-        "1m 15s",
-        "9s",
-    )
 
 
 def test_app_shows_backend_error_instead_of_crashing(monkeypatch: pytest.MonkeyPatch) -> None:

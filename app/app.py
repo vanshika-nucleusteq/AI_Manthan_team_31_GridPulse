@@ -74,35 +74,11 @@ with st.sidebar:
     )
     for key, (label, material, _) in VIEWS.items():
         st.button(label, key=f"nav_{key}", icon=material, on_click=set_view, args=(key,))
-    if not error and day_options:
-        runs = data.runs(14, day_options[0])
-        if runs.empty:
-            c.render(
-                c.status_card(
-                    "No DAG runs yet", "Run make.ps1 run-day to fill pipeline_runs.", 0, False
-                )
-            )
-        else:
-            last = runs.iloc[0]
-            tasks = data.run_tasks(str(last["run_id"]))
-            ok = int((tasks["status"] == "success").sum())
-            total = len(data.DAG_TASKS)
-            state = "failed task" if bool(last["failed"]) else "succeeded"
-            ds = pd.Timestamp(last["ds"]).date()
-            c.render(
-                c.status_card(
-                    f"Daily DAG · {state}",
-                    f"Run ds {fmt_day(ds)} · {ok} of {total} tasks · "
-                    '<span class="mono">metrics</span> pending (P10)',
-                    ok / total * 100,
-                    not bool(last["failed"]),
-                )
-            )
 
 # ---------- header ----------
 label = VIEWS[view][0]
 with st.container(key="header"):
-    left, mid, right, toggle = st.columns([3.2, 1.3, 1.6, 1.4], vertical_alignment="center")
+    left, mid, right, toggle = st.columns([3.4, 1.4, 1.5, 1.1], vertical_alignment="center")
     with left:
         c.render(c.crumb(label))
     with mid:
@@ -127,7 +103,9 @@ with st.container(key="header"):
                 )
                 mins = int(age.total_seconds() // 60)
                 live = (
-                    f"Published · {mins}m ago" if mins < 120 else f"Published · {mins // 60}h ago"
+                    f"Data published · {mins}m ago"
+                    if mins < 120
+                    else f"Data published · {mins // 60}h ago"
                 )
             else:
                 live = "Live · PostgreSQL"
