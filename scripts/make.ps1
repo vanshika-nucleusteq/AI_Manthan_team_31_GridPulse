@@ -45,7 +45,23 @@ switch ($Target) {
     "reset" { Invoke-Compose @("down", "--volumes", "--remove-orphans") }
     "logs" { Invoke-Compose (@("logs", "--tail", "200") + $Args2) }
     "seed" { Initialize-Env; Invoke-Compose @("run", "--rm", "gridpulse-init") }
-    { $_ -in @("run-day", "backfill", "rollback") } { Write-Output "TODO: built in P8" }
+    "run-day" {
+        if ($Args2.Count -ne 1) { throw "Usage: make.ps1 run-day YYYY-MM-DD" }
+        Invoke-Compose @("exec", "-T", "airflow-scheduler", "airflow", "dags", "backfill", "gridpulse_daily",
+            "-s", $Args2[0], "-e", $Args2[0], "--reset-dagruns", "-y")
+    }
+    "backfill" {
+        if ($Args2.Count -ne 2) { throw "Usage: make.ps1 backfill START END (YYYY-MM-DD)" }
+        Invoke-Compose @("exec", "-T", "airflow-scheduler", "airflow", "dags", "backfill", "gridpulse_daily",
+            "-s", $Args2[0], "-e", $Args2[1], "--reset-dagruns", "-y")
+    }
+    "rollback" {
+        if ($Args2.Count -lt 1) { throw "Usage: make.ps1 rollback YYYY-MM-DD [RUN_ID]" }
+        $RollArgs = @("exec", "-T", "airflow-scheduler", "/opt/gridpulse-venv/bin/python", "-m",
+            "gridpulse.maintenance.rollback", "--date", $Args2[0])
+        if ($Args2.Count -ge 2) { $RollArgs += @("--run-id", $Args2[1]) }
+        Invoke-Compose $RollArgs
+    }
     default {
         Write-Output "Targets: venv lint test check generate up down reset logs seed run-day backfill rollback"
         if ($Target -ne "help") { exit 1 }

@@ -43,5 +43,12 @@ seed:
 	python3 scripts/init_env.py
 	$(COMPOSE) run --rm gridpulse-init
 
-run-day backfill rollback:
-	@echo "TODO: built in P8"
+# make run-day DS=2026-08-14 | make backfill START=2026-08-01 END=2026-08-14 | make rollback DS=2026-08-14 [RUN_ID=...]
+run-day:
+	$(COMPOSE) exec -T airflow-scheduler airflow dags backfill gridpulse_daily -s $(DS) -e $(DS) --reset-dagruns -y
+
+backfill:
+	$(COMPOSE) exec -T airflow-scheduler airflow dags backfill gridpulse_daily -s $(START) -e $(END) --reset-dagruns -y
+
+rollback:
+	$(COMPOSE) exec -T airflow-scheduler /opt/gridpulse-venv/bin/python -m gridpulse.maintenance.rollback --date $(DS) $(if $(RUN_ID),--run-id $(RUN_ID),)
