@@ -249,3 +249,13 @@ def test_late_file_after_lookback_found_by_backfill(lake: Lake) -> None:
     assert daily["by_rule"] == {}
     backfill = quality(DS, lake)
     assert backfill["by_rule"] == {"UNKNOWN_METER": 1}
+
+
+def test_missing_landing_folder_fails_instead_of_emptying_bronze(lake: Lake) -> None:
+    land(lake, [v1("MTR-00001", 0, 1_000_000)])
+    ingest(DS, lake)
+    for path in sorted(lake.landing.rglob("*"), reverse=True):
+        path.unlink() if path.is_file() else path.rmdir()
+    with pytest.raises(FileNotFoundError, match="refusing to rebuild bronze"):
+        ingest(DS, lake)
+    assert len(bronze(lake)) == 1  # the good partition is untouched
