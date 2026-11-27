@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import time
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -64,11 +65,29 @@ def _fresh_tmp(target: Path) -> Path:
     return tmp
 
 
+def _rename(src: Path, dst: Path, attempts: int = 6) -> None:
+    """Rename with retries: on Windows a scanner or a bind mount can hold a new file briefly."""
+    for attempt in range(attempts):
+        try:
+            src.rename(dst)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.25 * 2**attempt)
+
+
 def _swap(tmp: Path, target: Path) -> None:
+    """Put tmp in place of target. If that fails, the previous version is restored first."""
     old = target.with_name(target.name + ".old")
     if target.exists():
-        target.rename(old)
-    tmp.rename(target)
+        _rename(target, old)
+    try:
+        _rename(tmp, target)
+    except OSError:
+        if old.exists() and not target.exists():
+            _rename(old, target)
+        raise
     if old.exists():
         shutil.rmtree(old)
 

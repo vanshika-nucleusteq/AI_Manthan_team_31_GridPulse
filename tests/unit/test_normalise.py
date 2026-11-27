@@ -219,3 +219,26 @@ def test_rerun_same_date_identical_output(lake: Lake) -> None:
     snapshot = (silver(lake, "readings"), silver(lake, "gaps"))
     assert normalise(DS, lake) == first
     assert (silver(lake, "readings"), silver(lake, "gaps")) == snapshot
+
+
+def test_failed_swap_restores_previous_partition(
+    lake: Lake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from gridpulse.common import lake as lake_module
+
+    land(lake, [v1("MTR-00001", 0, 1_000_000)])
+    run(lake)
+    before = silver(lake, "readings")
+    real_rename = Path.rename
+
+    def deny_tmp(self: Path, target: Path) -> Path:
+        if self.name.endswith(".tmp"):
+            raise PermissionError("locked")
+        return real_rename(self, target)
+
+    monkeypatch.setattr(Path, "rename", deny_tmp)
+    monkeypatch.setattr(lake_module.time, "sleep", lambda _: None)
+    with pytest.raises(PermissionError):
+        normalise(DS, lake)
+    monkeypatch.setattr(Path, "rename", real_rename)
+    assert silver(lake, "readings") == before
