@@ -23,6 +23,9 @@ compaction:
   sort_by: [meter_id, interval_start]
 orchestration:
   dag_id: gridpulse_daily
+  # null = runs only by backfill/run-day. The demo data is dated Aug 2026, so a wall-clock
+  # schedule would process empty days. Production: "0 0 * * *" (05:30 IST, ds = IST day).
+  schedule: null
   retries: 2
   retry_delay_minutes: 1
   max_active_runs: 1

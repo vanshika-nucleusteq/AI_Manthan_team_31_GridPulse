@@ -43,7 +43,12 @@ def read_landing(landing: Path, arrival_date: date) -> pa.Table:
         cols["file_rule"].append(rule)
         cols["file_reason"].append(why)
 
-    files = sorted(folder.rglob("*.jsonl.gz")) if folder.exists() else []
+    if not folder.exists():
+        # A missing folder means nothing ever arrived for this date or raw data has expired.
+        # Failing here stops the run before an empty bronze, silver or gold replaces good data
+        # (incident 2026-11-27: a scheduled run for a date with no data reached retention).
+        raise FileNotFoundError(f"no landing folder {folder}; refusing to rebuild bronze for it")
+    files = sorted(folder.rglob("*.jsonl.gz"))
     for path in files:
         src = path.relative_to(landing).as_posix()
         at = arrival_time(path.name)

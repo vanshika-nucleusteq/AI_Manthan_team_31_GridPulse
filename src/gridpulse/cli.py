@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections.abc import Sequence
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
+
+from gridpulse.common.runlog import record
 
 STEPS: dict[str, str] = {
     "ingest": "P4",
@@ -64,12 +67,28 @@ def run_step(step: str, ds: date) -> dict[str, Any] | None:
         from gridpulse.anomalies.run import anomalies
 
         return anomalies(ds)
+    if step == "compact":
+        from gridpulse.maintenance.compact import compact
+
+        return compact(ds)
+    if step == "retention":
+        from gridpulse.maintenance.retention import retention
+
+        return retention(ds)
     return None
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    result = run_step(args.step, args.ds)
+    run_id = os.environ.get("AIRFLOW_CTX_DAG_RUN_ID") or f"manual__{args.ds.isoformat()}"
+    started = datetime.now(UTC)
+    try:
+        result = run_step(args.step, args.ds)
+    except Exception as exc:
+        record(run_id, args.step, args.ds, started, datetime.now(UTC), "failed", None, repr(exc))
+        raise
+    if result is not None:
+        record(run_id, args.step, args.ds, started, datetime.now(UTC), "success", result)
     if result is None:
         print(f"TODO: {args.step} for ds={args.ds.isoformat()} built in {STEPS[args.step]}")
     else:

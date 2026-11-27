@@ -42,11 +42,18 @@ def partition_rows(duck: Any, lake: Lake, table: GoldTable, key: date) -> list[t
     return duck.sql(sql).fetchall()
 
 
-def publish(ds: date, lake: Lake | None = None, conninfo: str | None = None) -> dict[str, Any]:
+def publish(
+    ds: date,
+    lake: Lake | None = None,
+    conninfo: str | None = None,
+    days: list[date] | None = None,
+    months: list[date] | None = None,
+) -> dict[str, Any]:
     """Every touched partition is replaced inside one transaction: readers never see half a run,
     and publishing the same run twice leaves the same rows."""
     lake = lake or lake_from_config()
-    days, months = window(ds)
+    if days is None or months is None:
+        days, months = window(ds)
     duck = connect()
     rows: dict[str, int] = {}
     with psycopg.connect(conninfo or db_url()) as pg:
