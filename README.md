@@ -66,7 +66,7 @@ Airflow keeps its own Python. GridPulse is installed in a separate virtualenv in
 `src/` is mounted into the containers, so code changes apply without a rebuild.
 
 ### Airflow schedule
-`gridpulse_daily` is unscheduled and paused by default (`orchestration.schedule: null` in `config/pipeline.yaml`):
-the demo data is dated August 2026, so a wall-clock schedule would process empty days. Use `run-day` and
-`backfill`. In production set `schedule: "0 0 * * *"` (05:30 IST; Airflow's `ds` is then the IST day).
-Every task writes a row to the PostgreSQL table `pipeline_runs`.
+`gridpulse_daily` is scheduled daily at 00:00 UTC (05:30 IST; Airflow's `ds` is then the IST day) but stays
+**paused** by default, because the demo data is dated August 2026. Run it with `make.ps1 run-day` and
+`backfill`, which work on a paused DAG. Do not unpause it for the demo data. Every task writes a row to
+the PostgreSQL table `pipeline_runs`.
