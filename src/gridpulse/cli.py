@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Sequence
 from datetime import date
+from typing import Any
 
 STEPS: dict[str, str] = {
     "ingest": "P4",
@@ -36,9 +38,26 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def run_step(step: str, ds: date) -> dict[str, Any] | None:
+    """Run a built step and return its counts; None for steps still to be built."""
+    if step == "ingest":
+        from gridpulse.ingest.bronze import ingest
+
+        return ingest(ds)
+    if step == "quality":
+        from gridpulse.quality.rules import quality
+
+        return quality(ds)
+    return None
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    print(f"TODO: {args.step} for ds={args.ds.isoformat()} built in {STEPS[args.step]}")
+    result = run_step(args.step, args.ds)
+    if result is None:
+        print(f"TODO: {args.step} for ds={args.ds.isoformat()} built in {STEPS[args.step]}")
+    else:
+        print(json.dumps(result, default=str))
     return 0
 
 
