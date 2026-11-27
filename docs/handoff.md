@@ -48,7 +48,7 @@ A DAG left unpaused (P3 setting) ran for the wall-clock date 2026-11-26; retenti
 ## What's next
 
 1. **Decision pending (team):** spike guard `kWh >= 2x baseline mean` on top of z >= 4. Measured on 21 days: keeps 10/10 true spikes, false positives 580 to 0. Without it the Anomalies page is dominated by false positives.
-2. **P9 QA:** add the two missing plan tests (`test_late_file_inside_lookback_included`, `test_late_file_after_lookback_needs_backfill`), raw-to-gold reconciliation, Test Cases table in `docs/test-plan.md` and results in `docs/test-results.md`. (In progress.)
+2. **P9 QA: done.** All 26 plan test names exist; 106 unit tests pass; `docs/test-plan.md` (Test Cases table, boundary table) and `docs/test-results.md` (hit table, reconciliation, drill results, defect log DEF-01..11, DEF-08 open = spike guard).
 3. **P10 SRE:** `metrics` task (still a TODO in the DAG), `ops_alerts`, completeness alert, `docs/runbook.md`; the P8 incident is ready-made material.
 4. **P11 UI:** Streamlit pages from `docs/ui-design.md`; default date range 1 to 21 Aug; user will guide the design.
 5. **ADRs:** `docs/adr/0001-late-data.md`, `0002-storage-layout.md` are still stubs.
