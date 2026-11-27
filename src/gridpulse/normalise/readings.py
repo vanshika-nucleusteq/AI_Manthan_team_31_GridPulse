@@ -5,7 +5,13 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from gridpulse.common.lake import Lake, lake_from_config, overwrite_partitioned, sql_path
+from gridpulse.common.lake import (
+    Lake,
+    go_live,
+    lake_from_config,
+    overwrite_partitioned,
+    sql_path,
+)
 from gridpulse.normalise.gaps import build_gaps, first_day
 from gridpulse.quality.rules import _settings, check_window
 
@@ -99,7 +105,7 @@ def normalise(ds: date, lake: Lake | None = None) -> dict[str, Any]:
     settings = _settings()
     q, p = settings["quality"], settings["pipeline"]
     con, _ = check_window(ds, lake, settings)
-    first = first_day(ds, int(q["lookback_days"]))
+    first = max(first_day(ds, int(q["lookback_days"])), go_live())
     context = first - timedelta(days=int(q["context_days"]))
     tz, step = p["timezone_local"], int(p["interval_minutes"]) * 60
     con.execute(

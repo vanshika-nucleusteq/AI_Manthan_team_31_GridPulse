@@ -14,6 +14,7 @@ from gridpulse.aggregate.tables import TABLES, GoldTable
 from gridpulse.common.config import load_yaml
 from gridpulse.common.lake import (
     Lake,
+    clamp_days,
     lake_from_config,
     overwrite_partition,
     overwrite_partitioned,
@@ -45,7 +46,7 @@ def month_end(month: date) -> date:
 def window(ds: date) -> tuple[list[date], list[date]]:
     """IST days rebuilt by this run (the lookback window) and the months they fall in."""
     lookback = int(load_yaml("quality")["lookback_days"])
-    days = [ds - timedelta(days=i) for i in range(lookback - 1, -1, -1)]
+    days = clamp_days([ds - timedelta(days=i) for i in range(lookback - 1, -1, -1)]) or [ds]
     return days, sorted({d.replace(day=1) for d in days})
 
 
@@ -115,7 +116,7 @@ def aggregate(ds: date, lake: Lake | None = None, run_id: str | None = None) -> 
     con = connect()
     load_inputs(con, lake, ds, days, months)
     rows: dict[str, int] = {}
-    for table in TABLES:
+    for table in (t for t in TABLES if t.producer == "aggregate"):
         keys = months if table.partition == "month" else days
         column = "month" if table.partition == "month" else "local_date"
         rows[table.name] = 0

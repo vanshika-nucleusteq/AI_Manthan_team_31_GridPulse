@@ -18,7 +18,7 @@ DAG_TASKS = [
     "retention",
     "metrics",
 ]
-BUILT = ["ingest", "quality", "normalise", "aggregate", "publish"]
+BUILT = ["ingest", "quality", "normalise", "aggregate", "anomalies", "publish"]
 
 
 def test_cli_has_one_subcommand_per_dag_task() -> None:

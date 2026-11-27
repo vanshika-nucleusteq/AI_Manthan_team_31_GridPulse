@@ -62,6 +62,16 @@ class Lake:
         return self.root / "quarantine" / f"date={day.isoformat()}"
 
 
+def go_live() -> date:
+    return date.fromisoformat(str(load_yaml("pipeline")["go_live_date"]))
+
+
+def clamp_days(days: list[date]) -> list[date]:
+    """Drop days before go-live: no meter reported then, so they would look like a total outage."""
+    start = go_live()
+    return [d for d in days if d >= start]
+
+
 def lake_from_config() -> Lake:
     paths = load_yaml("pipeline")["paths"]
     data_dir = Path(os.environ.get("GRIDPULSE_DATA_DIR") or REPO_ROOT / paths["data_dir"])

@@ -60,6 +60,10 @@ def run_step(step: str, ds: date) -> dict[str, Any] | None:
         from gridpulse.publish.postgres import publish
 
         return publish(ds)
+    if step == "anomalies":
+        from gridpulse.anomalies.run import anomalies
+
+        return anomalies(ds)
     return None
 
 

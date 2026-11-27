@@ -11,6 +11,7 @@ from gridpulse.common.config import load_yaml
 from gridpulse.common.lake import (
     Lake,
     existing_parts,
+    go_live,
     lake_from_config,
     overwrite_partition,
     sql_path,
@@ -134,8 +135,8 @@ def _settings() -> dict[str, Any]:
     return {"quality": quality, "pipeline": pipeline}
 
 
-def bronze_parts_from(lake: Lake, first: date) -> list[str]:
-    """Bronze partitions with arrival_date >= first. Reading later arrivals is what lets a
+def bronze_parts_from(lake: Lake, first: date, last: date) -> list[str]:
+    """Bronze partitions with first <= arrival_date <= last. Reading later arrivals is what lets a
     backfill of an old ds pick up files that landed after its lookback window had closed."""
     root = lake.root / "bronze"
     folders = sorted(root.glob("arrival_date=*")) if root.exists() else []
@@ -143,7 +144,7 @@ def bronze_parts_from(lake: Lake, first: date) -> list[str]:
         f
         for f in folders
         if not f.name.endswith((".tmp", ".old"))
-        and date.fromisoformat(f.name.removeprefix("arrival_date=")) >= first
+        and first <= date.fromisoformat(f.name.removeprefix("arrival_date=")) <= last
     ]
     return existing_parts(keep)
 
@@ -151,10 +152,11 @@ def bronze_parts_from(lake: Lake, first: date) -> list[str]:
 def check_window(ds: date, lake: Lake, settings: dict[str, Any]) -> tuple[Any, date]:
     """Build table `checked` for reading dates first..ds plus context days; returns (con, first)."""
     q, p = settings["quality"], settings["pipeline"]
-    first = ds - timedelta(days=int(q["lookback_days"]) - 1)
+    first = max(ds - timedelta(days=int(q["lookback_days"]) - 1), go_live())
     context_start = first - timedelta(days=int(q["context_days"]))
     con = connect()
-    parts = bronze_parts_from(lake, context_start)
+    last_arrival = ds + timedelta(days=int(q["max_arrival_lag_days"]))
+    parts = bronze_parts_from(lake, context_start, last_arrival)
     if parts:
         con.execute(f"CREATE TEMP VIEW bronze AS SELECT * FROM read_parquet({parts!r})")
     else:

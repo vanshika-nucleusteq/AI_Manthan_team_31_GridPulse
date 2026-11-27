@@ -13,7 +13,7 @@ import pytest
 
 from gridpulse.aggregate.reconcile import reconcile
 from gridpulse.aggregate.run import aggregate
-from gridpulse.aggregate.tables import BY_NAME
+from gridpulse.aggregate.tables import BY_NAME, TABLES
 from gridpulse.common.lake import Lake, lake_from_config
 from gridpulse.ingest.bronze import ingest
 from gridpulse.normalise.readings import normalise
@@ -163,9 +163,10 @@ def test_replaced_gold_partition_moved_to_archive(lake: Lake) -> None:
 
 def test_rerun_same_date_identical_output(lake: Lake) -> None:
     first = build(lake, list(history("MTR-00001", 1_000_000)))
-    snapshot = {t: gold(lake, t) for t in BY_NAME}
+    produced = [t.name for t in TABLES if t.producer == "aggregate"]
+    snapshot = {t: gold(lake, t) for t in produced}
     assert aggregate(DS, lake, run_id="r1") == first
-    assert {t: gold(lake, t) for t in BY_NAME} == snapshot
+    assert {t: gold(lake, t) for t in produced} == snapshot
 
 
 def test_publish_deletes_partition_then_copies_explicit_columns() -> None:

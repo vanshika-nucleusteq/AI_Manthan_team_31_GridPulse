@@ -1,6 +1,7 @@
 # Pipeline settings. Values come from docs/gridpulse-plan.md sections 1-5 and P8.
 timezone_storage: UTC
 timezone_local: Asia/Kolkata
+go_live_date: "2026-08-01"       # no window reaches before this IST day (no meters reported earlier)
 interval_minutes: 15
 intervals_per_day: 96
 paths:                     # under data_dir; GRIDPULSE_DATA_DIR overrides data_dir
