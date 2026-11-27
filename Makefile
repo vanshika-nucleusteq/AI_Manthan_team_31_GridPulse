@@ -9,7 +9,7 @@ COMPOSE := docker compose --env-file .env -f deploy/docker-compose.yml
 venv:
 	$(PY) -m venv $(VENV)
 	$(BIN)/python -m pip install --upgrade pip
-	$(BIN)/python -m pip install -e ".[dev]"
+	$(BIN)/python -m pip install -e ".[dev,app]"
 
 lint:
 	$(BIN)/python -m ruff check .

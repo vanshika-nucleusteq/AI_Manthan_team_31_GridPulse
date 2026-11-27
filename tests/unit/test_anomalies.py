@@ -66,17 +66,19 @@ def events(con) -> list[dict]:
     return [dict(zip(rel.columns, row, strict=True)) for row in rel.fetchall()]
 
 
-def spike_history(days: int, target: float, has_gap: bool = False) -> list[tuple]:
-    """Hour 10 IST each day: baseline alternates 0.9 / 1.1 kWh; the last day carries target."""
+def spike_history(
+    days: int, target: float, has_gap: bool = False, low: float = 0.5, high: float = 1.5
+) -> list[tuple]:
+    """Hour 10 IST each day: baseline alternates low / high kWh; the last day carries target."""
     rows = []
     for day in range(days):
-        kwh = target if day == days - 1 else (0.9 if day % 2 else 1.1)
+        kwh = target if day == days - 1 else (low if day % 2 else high)
         gap = has_gap and day == days - 1
         rows.append(("MTR-00001", "F01", DAY0 + timedelta(days=day), hour(day, 10), kwh, 4, gap))
     return rows
 
 
-BASELINE_SD = (14 * 0.01 / 13) ** 0.5  # sample sd of 14 values alternating 0.9 / 1.1
+BASELINE_SD = (14 * 0.25 / 13) ** 0.5  # sample sd of 14 values alternating 0.5 / 1.5 (mean 1.0)
 
 
 def run_detect(con, last_day: date) -> list[dict]:
@@ -99,6 +101,12 @@ def test_spike_flags_at_z4() -> None:
 def test_spike_silent_just_under_z4() -> None:
     con = connect()
     tables(con, hourly=spike_history(15, 1.0 + 3.99 * BASELINE_SD))
+    assert run_detect(con, DAY0 + timedelta(days=14)) == []
+
+
+def test_spike_silent_when_below_2x_baseline_mean() -> None:
+    con = connect()
+    tables(con, hourly=spike_history(15, 1.5, low=0.99, high=1.01))  # z is about 48, ratio 1.5
     assert run_detect(con, DAY0 + timedelta(days=14)) == []
 
 

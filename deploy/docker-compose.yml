@@ -117,10 +117,14 @@ services:
     environment:
       GRIDPULSE_DB_URL: *gridpulse-db-url
       GRIDPULSE_CONFIG_DIR: /opt/gridpulse/config
+      GRIDPULSE_DATA_DIR: /opt/gridpulse/data
     ports:
       - "${STREAMLIT_PORT:-8501}:8501"
     volumes:
       - ../app:/opt/gridpulse/app:ro
+      - ../src:/opt/gridpulse/src:ro
+      - ../config:/opt/gridpulse/config:ro
+      - ../data:/opt/gridpulse/data:ro   # schema mix, ingest lag, storage sizes (read-only)
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
       interval: 10s

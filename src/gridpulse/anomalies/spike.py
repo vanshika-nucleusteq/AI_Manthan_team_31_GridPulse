@@ -32,5 +32,6 @@ WHERE NOT has_gap
   AND local_date BETWEEN DATE '{scan_start}' AND DATE '{ds}'
   AND samples >= {min_samples}
   AND sd > 0
-  AND (x - mean) / sd >= {z_threshold};
+  AND (x - mean) / sd >= {z_threshold}
+  AND x >= {min_ratio_to_mean} * mean;
 """

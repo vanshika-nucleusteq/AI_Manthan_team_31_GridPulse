@@ -12,5 +12,5 @@ COPY db ./db
 RUN useradd --uid 10001 --create-home gridpulse && chown -R gridpulse /opt/gridpulse
 USER gridpulse
 EXPOSE 8501
-CMD ["streamlit", "run", "app/Home.py", "--server.port=8501", "--server.address=0.0.0.0", \
+CMD ["streamlit", "run", "app/app.py", "--server.port=8501", "--server.address=0.0.0.0", \
      "--server.headless=true", "--browser.gatherUsageStats=false"]

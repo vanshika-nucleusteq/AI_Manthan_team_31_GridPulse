@@ -29,7 +29,7 @@ switch ($Target) {
     "venv" {
         Invoke-Step "py" @("-3.12", "-m", "venv", ".venv")
         Invoke-Step $Py @("-m", "pip", "install", "--upgrade", "pip")
-        Invoke-Step $Py @("-m", "pip", "install", "-e", ".[dev]")
+        Invoke-Step $Py @("-m", "pip", "install", "-e", ".[dev,app]")
     }
     "lint" { Invoke-Lint }
     "test" { Invoke-Test }

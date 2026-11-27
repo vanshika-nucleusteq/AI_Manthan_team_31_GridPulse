@@ -23,9 +23,12 @@ compaction:
   sort_by: [meter_id, interval_start]
 orchestration:
   dag_id: gridpulse_daily
-  # null = runs only by backfill/run-day. The demo data is dated Aug 2026, so a wall-clock
-  # schedule would process empty days. Production: "0 0 * * *" (05:30 IST, ds = IST day).
-  schedule: null
+  # Daily at 00:00 UTC (05:30 IST; Airflow's ds is then the IST day). The DAG stays PAUSED
+  # (DAGS_ARE_PAUSED_AT_CREATION) because the demo data is dated Aug 2026: run it with
+  # make.ps1 run-day / backfill, which work on a paused DAG. A schedule is required for that:
+  # with null, backfill finds no run dates (DEF-12). If unpaused by mistake, ingest fails on a
+  # day with no landing data before anything is overwritten (DEF-10).
+  schedule: "0 0 * * *"
   retries: 2
   retry_delay_minutes: 1
   max_active_runs: 1
